@@ -35,7 +35,7 @@ app.get('*', (req, res) => {
 })
 
 
-
-app.listen(3000, () => {
-    console.log(' Port 3000 server started')
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+    console.log(' Port 3000 server started at port')
 })
