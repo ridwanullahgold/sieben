@@ -5,6 +5,10 @@ import mongoose from 'mongoose'
 import jwt from 'jsonwebtoken'
 import randomstring from 'randomstring' 
 import PasswordReset from '@models/PasswordReset'
+const nodemailer = require('nodemailer');
+const ejs = require('ejs');
+import sendEmail from '@config/mail'
+
 
 const UserSchema = new mongoose.Schema({
     name: String,
@@ -24,6 +28,40 @@ UserSchema.pre('save', function () {
     this.emailConfirmCode = randomstring.generate(72)
     this.createdAt = new Date()
 })
+
+UserSchema.post('save', async function () {
+    const sendEmail = async options => {
+        // 1) Create a transporter
+        let transporter = nodemailer.createTransport({
+            service: 'Gmail',
+            secure: false,
+            auth: {
+                user: process.env.EMAIL_USERNAME,
+                pass: process.env.EMAIL_PASSWORD
+            }
+        });  
+        // 2) E-mail options
+        const link = `${config.url}/auth/emails/confirm/${this.emailConfirmCode}`
+        ejs.renderFile(__dirname + "/views/template.ejs", {name:this.name, link}, async function (err, data) {
+            if (err) {  
+            } else {
+        const mailOptions = {
+            from : 'Muyiwa Olugbebi <muyiwaolugbebi@gmail.com>',
+            to:options.email,
+            subject:options.subject,
+            html:data
+        }
+        // 3) Actually send the mail
+        await transporter.sendMail(mailOptions)
+    }
+    })
+    }
+    await sendEmail({
+        email:this.email,
+        subject: 'Please confirm your account',
+    })
+})
+
 
 // UserSchema.post('save', async function () {
 //     await new Mail('confirm-account')
@@ -49,15 +87,44 @@ UserSchema.methods.forgotPassword = async function() {
         email:this.email,
         createdAt : new Date()
     })
-
-    await new Mail('forgot-password')
-    .to(this.email, this.name)
-    .subject('Password Reset')
-    .data({
-        name: this.name,
-        url: `${config.url}/auth/passwords/reset/${token}`
+    
+    const sendEmail = async options => {
+        // 1) Create a transporter
+        let transporter = nodemailer.createTransport({
+            service: 'Gmail',
+            secure: false,
+            auth: {
+                user: process.env.EMAIL_USERNAME,
+                pass: process.env.EMAIL_PASSWORD
+            }
+        });  
+        // 2) E-mail options
+        const link = `${config.url}/auth/passwords/reset/${token}`
+        const title='Reset Password';
+        const message = "Please reset your password. The reset token will expire after 1 hour"
+        ejs.renderFile(__dirname + "/views/reset.ejs", {name:this.name, link, title, message}, async function (err, data) {
+            if (err) {  
+            } else {
+        const mailOptions = {
+            from : 'Muyiwa Olugbebi <muyiwaolugbebi@gmail.com>',
+            to:options.email,
+            subject:options.subject,
+            html:data
+        }
+        // 3) Actually send the mail
+        await transporter.sendMail(mailOptions)
+    }
     })
-    .send()
+    }
+    
+    await sendEmail({
+        email:this.email,
+        subject: 'Password Reset',
+    
+
+    })
+
+
 }
 
 export default mongoose.model('User', UserSchema)

@@ -64,12 +64,26 @@ const resetPassword = async (req, res) => {
         message: "Password Reset Successfully"
     })
 }
+const confirmEmail = async (req, res) => {
+    const user = await User.findOneAndUpdate({
+        email: req.user.email
+    }, {
+        emailConfirmCode: null,
+        emailConfirmedAt: new Date()
+    }, { new: true })
 
+    const token = user.generateToken()
 
+    return res.json({
+        user,
+        token
+    })
+}
 
 export default {
     login,
     register,
     forgotPassword,
-    resetPassword
+    resetPassword,
+    confirmEmail
 }
